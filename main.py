@@ -43,24 +43,33 @@ def get_item_attributes(link):
     #description_path = '//*[@id="content"]/div[1]/div[4]/div/div[2]/div[1]/h2/span'
     #description = source_code.xpath(description_path)[0].text_content()
 
-    print(name, " ", link, " ", description)
     price_path = '//div[1]/div[4]/div/div[2]/div[1]'
     res = source_code.xpath(price_path)[0].text_content()
-    x = re.search("(.\d+\.\d\d)", res)
-    price = x.group()
+    price = re.search("(.\d+\.\d\d)", res).group()
 
-    table1_path = '//div[1]/div[4]/div/div[5]/div[1]/div[1]/div/div[1]/table'
-    table1 = source_code.xpath(table1_path)[0].text_content()
-    print(table1)
+    table_path = '//div[1]/div[4]/div/div[5]/div[1]/div[1]/div/div[1]/table'
+    table1 = source_code.xpath(table_path)[0].text_content()
+    text = re.sub("( {2,}\n)|( {2,})", "", table1)
+    text_iter = text.splitlines()
+    for i in range(len(text_iter)):
+        if "Available:" in text_iter[i]:
+            quantity = int(re.search(r'\d+', text_iter[i+1]).group())
+            i += 1
+        elif "Condition:" in text_iter[i]:
+            condition = text_iter[i+1]
+            i += 1
+        elif "Type:" in text_iter[i]:
+            item_type = text_iter[i+1]
+            i += 1
+        elif "Color:" in text_iter[i]:
+            color = text_iter[i+1]
+            i += 1
+        elif "Brand:" in text_iter[i]:
+            brand = text_iter[i+1]
+            i += 1
 
-    color_path = '//*[@id="content"]/div[1]/div[4]/div/div[5]/div[1]/div[1]/div/div[1]/table/tbody/tr[6]/td/p'
-    color = source_code.xpath(color_path)[0].text_content()
+    print(price, name, brand)
 
-    brand_path = '//*[@id="content"]/div[1]/div[4]/div/div[5]/div[1]/div[1]/div/div[1]/table/tbody/tr[8]/td/p/span'
-    brand = source_code.xpath(brand_path)[0].text_content()
-
-    condition_path = '//*[@id="content"]/div[1]/div[4]/div/div[5]/div[1]/div[1]/div/div[1]/table/tbody/tr[3]/td/p/text()'
-    condition = source_code.xpath(condition_path)[0].text_content()
 
 
 # for link in item_links:
@@ -69,6 +78,9 @@ def get_item_attributes(link):
 r = http.request('GET', "https://www.bonanzamarket.co.uk//listings/Saturn-Ceramic-Gilding-Pattern-Modern-Handmade-Special-Design-Ceramic-Flowerpot/1306985327")
 data_string = r.data.decode('utf-8', errors='ignore')
 source_code = html.fromstring(data_string)
+#print(source_code.text_content())
 
-
-get_item_attributes(item_links[0])
+desc_path = '//*[@id="content"]/div[1]/div[4]/div/div[6]/div[2]/div[3]'
+xxx = data_string
+print(source_code.xpath(desc_path)[0])
+#get_item_attributes(item_links[0])
