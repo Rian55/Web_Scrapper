@@ -2,6 +2,7 @@ from lxml import html
 import xlsxwriter
 import re
 import requests
+from selenium import webdriver
 
 item_links = []
 all_items = []
@@ -9,8 +10,8 @@ all_items = []
 
 class Item(object):
     # TODO:: add predefined values for parameters in init
-    def __init__(self, name, url, brand, description, price, currency, image_url, color,
-                 quantity, item_type, condition):
+    def __init__(self, name, url, brand, price, currency, image_url, color,
+                 quantity, item_type, condition, description=""):
         self.name = name
         self.url = url
         self.brand = brand
@@ -23,20 +24,23 @@ class Item(object):
         self.item_type = item_type
         self.condition = condition
 
+    def set_description(self, description):
+        self.description = description
+
 
 def initial_request():
     # TODO:: add proper break condition
-    for i in range(1,10):
+    for i in range(1, 10):
         try:
             root_url = 'https://www.bonanzamarket.co.uk/items/search?q[country_to_filter]=GB&q[ship_country]' \
-                        '=1&q[tas][186873][]=6627596&q[translate_term]=true&q[page]='+str(i)+'&s=6937&q[' \
+                       '=1&q[tas][186873][]=6627596&q[translate_term]=true&q[page]=' + str(i) + '&s=6937&q[' \
                         'search_term]=saturn%20ceramic'
             data = requests.get(root_url).content
             path = '//div[2]/div[1]/a'
             source_code = html.fromstring(data)
             tree = source_code.xpath(path)
-            for i in tree:
-                item_link = i.attrib["href"]
+            for leaf in tree:
+                item_link = leaf.attrib["href"]
                 if item_link[0:9] == "/listings":
                     item_links.append("https://www.bonanzamarket.co.uk/" + item_link)
         except:
@@ -53,7 +57,6 @@ def get_item_attributes(link):
     color = ""
     brand = ""
     name = source_code.xpath('//meta[@property="og:title"]/@content')[0]
-    description = source_code.xpath('//meta[@property="og:description"]/@content')[0]
     price = source_code.xpath('//meta[@property="product:price:amount"]/@content')[0]
     currency = source_code.xpath('//meta[@property="og:price:currency"]/@content')[0]
     image_url = source_code.xpath('//meta[@property="og:image"]/@content')[0]
@@ -80,7 +83,7 @@ def get_item_attributes(link):
             i += 1
 
     all_items.append(Item(name=name, quantity=quantity, item_type=item_type, brand=brand, color=color,
-                          description=description, price=price, currency=currency, image_url=image_url,
+                          price=price, currency=currency, image_url=image_url,
                           condition=condition, url=link))
     print(link)
 
@@ -110,24 +113,42 @@ def items_to_xlsx():
     worksheet.write('K1', 'Condition', bold)
 
     for i in range(0, len(all_items)):
-        worksheet.write('A'+str(i+2), all_items[i].name)
-        worksheet.write('B'+str(i+2), all_items[i].url)
-        worksheet.write('C'+str(i+2), all_items[i].brand)
-        worksheet.write('D'+str(i+2), all_items[i].description)
-        worksheet.write('E'+str(i+2), all_items[i].price)
-        worksheet.write('F'+str(i+2), all_items[i].currency)
-        worksheet.write('G'+str(i+2), all_items[i].image_url)
-        worksheet.write('H'+str(i+2), all_items[i].color)
-        worksheet.write('I'+str(i+2), all_items[i].quantity)
-        worksheet.write('J'+str(i+2), all_items[i].item_type)
-        worksheet.write('K'+str(i+2), all_items[i].condition)
+        worksheet.write('A' + str(i + 2), all_items[i].name)
+        worksheet.write('B' + str(i + 2), all_items[i].url)
+        worksheet.write('C' + str(i + 2), all_items[i].brand)
+        worksheet.write('D' + str(i + 2), all_items[i].description)
+        worksheet.write('E' + str(i + 2), all_items[i].price)
+        worksheet.write('F' + str(i + 2), all_items[i].currency)
+        worksheet.write('G' + str(i + 2), all_items[i].image_url)
+        worksheet.write('H' + str(i + 2), all_items[i].color)
+        worksheet.write('I' + str(i + 2), all_items[i].quantity)
+        worksheet.write('J' + str(i + 2), all_items[i].item_type)
+        worksheet.write('K' + str(i + 2), all_items[i].condition)
 
     workbook.close()
 
 
+def update_description(web_driver):
+    for i in range(len(item_links)):
+        web_driver.get(item_links[i])
+        source_code = html.fromstring(driver.page_source)
+        description_path = "//div[@class='item_description_inner']"
+        print(i+1, " of ", len(item_links), item_links[i])
+        all_items[i].set_description(re.sub("^(\s*)", "", source_code.xpath(description_path)[0].text_content()))
+
+
 initial_request()
-for item in item_links:
-    get_item_attributes(item)
+
+for link in item_links:
+    get_item_attributes(link)
+
+options = webdriver.ChromeOptions()
+options.add_argument("headless")
+options.add_experimental_option('excludeSwitches', ['enable-logging'])
+driver = webdriver.Chrome(executable_path="C:/Users/Yenip/OneDrive/Belgeler/chromedriver.exe", options=options)
+update_description(driver)
+driver.quit()
+
 items_to_xlsx()
 
 
